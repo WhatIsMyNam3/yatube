@@ -6,7 +6,7 @@ def page_not_found(request, exception):
 
 
 def error_view(request, exception):
-    return render(request, 'core/500.html', {})
+    return render(request, 'core/500.html', {'path': request.path}, status=500)
 
 
 def csrf_failure(request, reason=''):
