@@ -10,4 +10,4 @@ def error_view(request, exception):
 
 
 def csrf_failure(request, reason=''):
-    return render(request, 'core/403csrf.html')
+    return render(request, 'core/403_csrf.html')
