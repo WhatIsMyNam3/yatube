@@ -46,7 +46,7 @@ def profile(request, username):
     post_list = Post.objects.filter(author=author).all()
     page_obj = create_paginnator(request, post_list, NUMBER_POSTS_PER_PAGE)
     following = ((request.user.is_authenticated) and (Follow.objects.filter(
-            user=request.user, author=author).exists()))
+                user=request.user, author=author).exists()))
     context = {
         'author': author,
         'page_obj': page_obj,
