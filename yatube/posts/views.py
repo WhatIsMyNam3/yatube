@@ -31,7 +31,7 @@ def group_posts(request, slug):
     template = 'posts/group_list.html'
     group = get_object_or_404(Group, slug=slug)
 
-    post_list = Post.objects.filter(group=group).all()
+    post_list = Post.objects.select_related('group').filter(group=group)
     page_obj = create_paginnator(request, post_list, NUMBER_POSTS_PER_PAGE)
 
     context = {
@@ -43,7 +43,7 @@ def group_posts(request, slug):
 
 def profile(request, username):
     author = get_object_or_404(User, username=username)
-    post_list = Post.objects.filter(author=author).all()
+    post_list = Post.objects.select_related('author').filter(author=author)
     page_obj = create_paginnator(request, post_list, NUMBER_POSTS_PER_PAGE)
     following = (
         (request.user.is_authenticated) and (Follow.objects.filter(
@@ -64,7 +64,7 @@ def post_detail(request, post_id):
         pk=post_id
     )
     form = CommentForm(request.POST or None)
-    comments = Comment.objects.filter(post=post)
+    comments = Comment.objects.filter(post__comments__post=post)
     context = {
         'post': post,
         'form': form,
@@ -85,10 +85,12 @@ def post_create(request):
             post.author = request.user
             post.save()
             return redirect('posts:profile', post.author)
-        else:
-            context = {'form': form, 'is_edit': False}
-            return render(request, 'posts/create_post.html', context)
-    form = PostForm(files=request.FILES or None)
+        context = {
+            'form': form,
+            'is_edit': False
+        }
+        return render(request, 'posts/create_post.html', context)
+    form = PostForm()
     context = {
         'form': form,
         'is_edit': False

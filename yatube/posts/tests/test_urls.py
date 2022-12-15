@@ -110,3 +110,20 @@ class PostsURLTests(TestCase):
             response,
             f'/auth/login/?next=/posts/{self.post.id}/comment/'
         )
+
+    def test_anonymous_cannot_use_follow(self):
+        """Неавторизированный пользователь пользоваться системой подписок."""
+        addresses = {
+            '/follow/': '/auth/login/?next=/follow/',
+            f'/profile/{self.user.username}/follow/':
+            f'/auth/login/?next=/profile/{self.user.username}/follow/',
+            f'/profile/{self.user.username}/unfollow/':
+            f'/auth/login/?next=/profile/{self.user.username}/unfollow/',
+        }
+        for address, redirect_address in addresses.items():
+            with self.subTest(address=address):
+                response = self.guest_client.get(address)
+                self.assertRedirects(
+                    response,
+                    redirect_address
+                )

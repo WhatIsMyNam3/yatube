@@ -8,7 +8,7 @@ from django.conf import settings
 from django.test import Client, TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from ..models import Group, Post, Follow
+from ..models import Group, Post, Follow, Comment
 
 User = get_user_model()
 NUMBER_POSTS_PER_PAGE = 10
@@ -40,6 +40,10 @@ class PostsViewsTests(TestCase):
             author=cls.user1,
             text='Тестовый пост1',
             group=cls.group1,
+        )
+        cls.follow = Follow.objects.create(
+            user=cls.user,
+            author=cls.user1
         )
 
     def setUp(self) -> None:
@@ -168,36 +172,35 @@ class PostsViewsTests(TestCase):
 
     def test_authorized_user_add_comment(self):
         """Добавление коммента авторизованным пользователем"""
-        self.authorized_client.post(
-            reverse(
-                'posts:add_comment',
-                kwargs={'post_id': self.post.id}
-            ),
-            {'text': "Тестовый комментарий"},
-            follow=True
+        comment = Comment.objects.create(
+            post=self.post,
+            author=self.user,
+            text='Коммент'
         )
         response = self.authorized_client.get(f'/posts/{self.post.id}/')
-        self.assertContains(response, 'Тестовый комментарий')
+        self.assertEqual(response.context.get('comments')[0], comment)
 
     def test_cache_index(self):
         """Тест кеша страницы index."""
         response = self.authorized_client.get(reverse('posts:index'))
         first_cache = response.content
-        Post.objects.get(id=1)
+        post = Post.objects.get(id=self.post.pk)
+        post.delete()
         response = self.authorized_client.get(reverse('posts:index'))
         second_cache = response.content
         self.assertEqual(first_cache, second_cache)
+        cache.clear()
+        response = self.authorized_client.get(reverse('posts:index'))
+        third_cache = response.context['page_obj']
+        self.assertNotIn(post, third_cache)
 
     def test_new_post_follow_index_show_correct_context(self):
         """Шаблон follow_index сформирован с правильным контекстом."""
-        self.authorized_client.get(reverse('posts:profile_follow',
-                                           kwargs={'username': self.user1}))
-        follow_exist = Follow.objects.filter(user=self.user,
-                                             author=self.user1).exists()
-        self.assertEqual(True, follow_exist)
 
-        test_post = Post.objects.create(text='Тестовый пост1',
-                                        author=self.user)
+        test_post = Post.objects.create(
+            text='Тестовый пост1',
+            author=self.user
+        )
         expected = test_post.text
         response = self.authorized_client.get(reverse('posts:follow_index'))
         first_post = response.context['page_obj'].object_list[0]
@@ -205,9 +208,6 @@ class PostsViewsTests(TestCase):
 
         self.authorized_client.get(reverse('posts:profile_unfollow',
                                            kwargs={'username': self.user1}))
-        follow_exist = Follow.objects.filter(user=self.user,
-                                             author=self.user1).exists()
-        self.assertEqual(False, follow_exist)
 
         response = self.authorized_client.get(reverse('posts:follow_index'))
         self.assertFalse(len(response.context.get('page_obj').object_list))
@@ -222,8 +222,6 @@ class PostsViewsTests(TestCase):
 
     def test_unfollow_another_user(self):
         """Unfollow от другого пользователя работает корректно"""
-        self.authorized_client.get(reverse('posts:profile_follow',
-                                           kwargs={'username': self.user1}))
         self.authorized_client.get(reverse('posts:profile_unfollow',
                                            kwargs={'username': self.user1}))
         follow_exist = Follow.objects.filter(user=self.user,
