@@ -5,7 +5,7 @@ from django.views.decorators.cache import cache_page
 
 
 from .forms import PostForm, CommentForm
-from .models import Group, Post, User, Comment, Follow
+from .models import Group, Post, User, Follow
 
 NUMBER_POSTS_PER_PAGE = 10
 

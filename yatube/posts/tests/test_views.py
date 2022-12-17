@@ -227,7 +227,7 @@ class PostsViewsTests(TestCase):
             author=self.user1
         )
         self.authorized_client.get(reverse('posts:profile_unfollow',
-                                             kwargs={'username': self.user1}))
+                                           kwargs={'username': self.user1}))
         follow_exist = Follow.objects.filter(user=self.user,
                                              author=self.user1).exists()
         self.assertFalse(follow_exist)
