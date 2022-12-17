@@ -8,7 +8,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from ..models import Group, Post, User
+from ..models import Group, Post, User, Comment
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -39,6 +39,11 @@ class PostFormTests(TestCase):
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост',
+        )
+        cls.comment = Comment.objects.create(
+            post=cls.post,
+            author=cls.user,
+            text='Тестовый коммент',
         )
 
     @classmethod
@@ -73,6 +78,31 @@ class PostFormTests(TestCase):
                 text=self.post.text,
                 group=self.group.pk,
                 author=self.user,
+            ).exists()
+        )
+        self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_create_comment(self):
+        """Валидная форма создает Comment."""
+        comments_count = Comment.objects.count()
+        form_data = {
+            'text': self.comment.text,
+        }
+        response = self.authorized_client.post(
+            reverse('posts:add_comment', kwargs={'post_id': self.post.id}),
+            data=form_data,
+            follow=True
+        )
+        self.assertRedirects(
+            response,
+            reverse('posts:post_detail', kwargs={'post_id': self.post.id})
+        )
+        self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertTrue(
+            Comment.objects.filter(
+                text=self.comment.text,
+                author=self.comment.author,
+                post=self.comment.post
             ).exists()
         )
         self.assertEqual(response.status_code, HTTPStatus.OK)

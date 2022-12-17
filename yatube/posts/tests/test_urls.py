@@ -67,19 +67,6 @@ class PostsURLTests(TestCase):
         response = self.authorized_client.get(f"/posts/{self.post.id}/edit/")
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_post_edit_url_redirect_anonymous_on_auth_login(self):
-        """Страница posts/post_id/edit редиректит гостя на страницу
-        регистрации.
-        """
-        response = self.guest_client.get(
-            f'/posts/{self.post.id}/edit/',
-            follow=True
-        )
-        self.assertRedirects(
-            response,
-            f'/auth/login/?next=/posts/{self.post.id}/edit/'
-        )
-
     def test_post_edit_url_redirect_authorized_on_post_detail(self):
         """Страница posts/post_id/edit редиректит зарегистрированного
          пользователя на страницу поста.
@@ -93,37 +80,26 @@ class PostsURLTests(TestCase):
             f'/posts/{self.post.id}/'
         )
 
-    def test_create_url_redirect_anonymous_on_auth_login(self):
-        """Страница /create/ редиректит гостя на страницу регистрации."""
-        response = self.guest_client.get('/create/', follow=True)
-        self.assertRedirects(response, '/auth/login/?next=/create/')
-
     def test_not_exists_url(self):
         """Проверка несуществующего URL."""
         response = self.guest_client.get('/top100posts/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
-    def test_anonymous_cannot_commen(self):
-        """Неавторизированный пользователь не может комментаровать."""
-        response = self.guest_client.get(f'/posts/{self.post.id}/comment/')
-        self.assertRedirects(
-            response,
-            f'/auth/login/?next=/posts/{self.post.id}/comment/'
-        )
-
-    def test_anonymous_cannot_use_follow(self):
-        """Неавторизированный пользователь пользоваться системой подписок."""
-        addresses = {
-            '/follow/': '/auth/login/?next=/follow/',
-            f'/profile/{self.user.username}/follow/':
-            f'/auth/login/?next=/profile/{self.user.username}/follow/',
-            f'/profile/{self.user.username}/unfollow/':
-            f'/auth/login/?next=/profile/{self.user.username}/unfollow/',
-        }
-        for address, redirect_address in addresses.items():
+    def test_anonymous_cannot_use_authorized_options(self):
+        """Неавторизированный пользователь не может пользоваться
+        возможностями зарегистрированного пользователя."""
+        addresses = [
+            '/follow/',
+            f'/profile/{self.user.username}/follow/',
+            f'/profile/{self.user.username}/unfollow/',
+            f'/posts/{self.post.id}/comment/',
+            '/create/',
+            f'/posts/{self.post.id}/edit/',
+        ]
+        for address in addresses:
             with self.subTest(address=address):
                 response = self.guest_client.get(address)
                 self.assertRedirects(
                     response,
-                    redirect_address
+                    '/auth/login/?next=' + address
                 )

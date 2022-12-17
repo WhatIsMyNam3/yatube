@@ -64,7 +64,7 @@ def post_detail(request, post_id):
         pk=post_id
     )
     form = CommentForm(request.POST or None)
-    comments = Comment.objects.filter(post__comments__post=post)
+    comments = post.comments.all()
     context = {
         'post': post,
         'form': form,
@@ -90,7 +90,7 @@ def post_create(request):
             'is_edit': False
         }
         return render(request, 'posts/create_post.html', context)
-    form = PostForm()
+    form = PostForm(files=request.FILES or None)
     context = {
         'form': form,
         'is_edit': False

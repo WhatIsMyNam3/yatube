@@ -218,15 +218,19 @@ class PostsViewsTests(TestCase):
                                            kwargs={'username': self.user1}))
         follow_exist = Follow.objects.filter(user=self.user,
                                              author=self.user1).exists()
-        self.assertEqual(True, follow_exist)
+        self.assertTrue(follow_exist)
 
     def test_unfollow_another_user(self):
         """Unfollow от другого пользователя работает корректно"""
+        Follow.objects.create(
+            user=self.user,
+            author=self.user1
+        )
         self.authorized_client.get(reverse('posts:profile_unfollow',
-                                           kwargs={'username': self.user1}))
+                                             kwargs={'username': self.user1}))
         follow_exist = Follow.objects.filter(user=self.user,
                                              author=self.user1).exists()
-        self.assertEqual(False, follow_exist)
+        self.assertFalse(follow_exist)
 
 
 class PaginatorViewsTest(TestCase):
